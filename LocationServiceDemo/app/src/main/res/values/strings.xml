@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">LocationServiceDemo</string>
+    <string name="app_name">后台定位</string>
 
     <string name="startLocation">启动定位服务</string>
     <string name="stopLocation">关闭定位服务</string>
