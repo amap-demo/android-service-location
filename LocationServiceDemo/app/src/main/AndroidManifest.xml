@@ -60,6 +60,12 @@
         </activity>
 
         <service android:name=".LocationService"/>
+
+        <receiver android:name=".AlarmReceiver">
+            <intent-filter>
+                <action android:name="LOCATION_CLOCK" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

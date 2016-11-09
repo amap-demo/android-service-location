@@ -1,9 +1,12 @@
 package com.amap.locationservicedemo;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.ButtonBarLayout;
@@ -52,11 +55,24 @@ public class MainActivity extends AppCompatActivity {
             getApplicationContext().startService(new Intent(this, LocationService.class));
             buttonStartService.setText(R.string.stopLocation);
             tvResult.setText("正在定位...");
+
+            startAlarmManager();
+
         } else {
             getApplicationContext().stopService(new Intent(this, LocationService.class));
             buttonStartService.setText(R.string.startLocation);
             tvResult.setText("");
+
         }
+    }
+
+    private void startAlarmManager() {
+        Intent intent = new Intent("LOCATION_CLOCK");
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, 0);
+        AlarmManager alarmManager = (AlarmManager)getSystemService(ALARM_SERVICE);
+        // 没五秒唤醒一次
+        long second = 15 * 1000;
+        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), second, pendingIntent);
     }
 
 

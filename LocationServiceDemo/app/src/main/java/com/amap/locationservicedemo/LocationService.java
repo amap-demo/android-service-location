@@ -1,8 +1,11 @@
 package com.amap.locationservicedemo;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
+import android.os.SystemClock;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
@@ -40,7 +43,7 @@ public class LocationService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         startLocation();
-        return super.onStartCommand(intent, flags, startId);
+        return START_STICKY;
     }
 
     @Override
@@ -63,6 +66,8 @@ public class LocationService extends Service {
         mLocationOption = new AMapLocationClientOption();
         // 使用连续
         mLocationOption.setOnceLocation(false);
+        // 每10秒定位一次
+        mLocationOption.setInterval(10 * 1000);
         // 地址信息
         mLocationOption.setNeedAddress(true);
         mLocationClient.setLocationOption(mLocationOption);
