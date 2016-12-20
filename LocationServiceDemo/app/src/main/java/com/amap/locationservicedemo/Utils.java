@@ -3,10 +3,15 @@
  */
 package com.amap.locationservicedemo;
 
+import android.os.Environment;
 import android.text.TextUtils;
 
 import com.amap.api.location.AMapLocation;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
 
@@ -102,5 +107,28 @@ public class Utils {
 			sdf.applyPattern(strPattern);
 		}
 		return sdf == null ? "NULL" : sdf.format(l);
+	}
+
+	/**
+	 * 　　* 保存文件 　　* @param toSaveString 　　* @param filePath 　　
+	 */
+	public static void saveFile(String toSaveString, String fileName,boolean append) {
+		try {
+			String sdCardRoot = Environment.getExternalStorageDirectory()
+					.getAbsolutePath();
+			File saveFile = new File(sdCardRoot + "/" + fileName);
+			if (!saveFile.exists()) {
+				File dir = new File(saveFile.getParent());
+				dir.mkdirs();
+				saveFile.createNewFile();
+			}
+			FileOutputStream outStream = new FileOutputStream(saveFile, append);
+			outStream.write(toSaveString.getBytes());
+			outStream.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 }
