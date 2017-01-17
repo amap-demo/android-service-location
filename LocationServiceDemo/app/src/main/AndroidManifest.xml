@@ -17,6 +17,8 @@
     <!-- 不是SDK需要的权限，是示例中的后台唤醒定位需要的权限 -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- 不是sdk需要的权限，是示例中NotiService$NotiInnerService需要的权限-->
+    <uses-permission android:name="android.permission.ACCESS_LOCATION_EXTRA_COMMANDS" />
 
 
     <!-- 需要运行时注册的权限 -->
@@ -46,7 +48,7 @@
         <!-- 设置key -->
         <meta-data
             android:name="com.amap.api.v2.apikey"
-            android:value="您的Key" />
+            android:value="您的key" />
         <!-- 定位需要的服务 -->
         <service android:name="com.amap.api.location.APSService" >
         </service>
@@ -61,12 +63,8 @@
         </activity>
 
         <service android:name=".LocationService"/>
+        <service android:name=".NotiService$NotiInnerService" />
 
-        <receiver android:name=".AlarmReceiver">
-            <intent-filter>
-                <action android:name="LOCATION_CLOCK" />
-            </intent-filter>
-        </receiver>
     </application>
 
 </manifest>

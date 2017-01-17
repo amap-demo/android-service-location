@@ -1,13 +1,8 @@
 package com.amap.locationservicedemo;
 
-import android.app.AlarmManager;
-import android.app.PendingIntent;
-import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
-import android.os.SystemClock;
 import android.support.annotation.Nullable;
-import android.util.Log;
 
 import com.amap.api.location.AMapLocation;
 import com.amap.api.location.AMapLocationClient;
@@ -24,8 +19,15 @@ import com.amap.api.location.AMapLocationListener;
  * @email guibao.ggb@alibaba-inc.com
  * <p>
  * 类说明：后台服务定位
+ *
+ * <p>
+ *     modeified by liangchao , on 2017/01/17
+ *     update:
+ *     1. 只有在由息屏造成的网络断开造成的定位失败时才点亮屏幕
+ *     2. 利用notification机制增加进程优先级
+ * </p>
  */
-public class LocationService extends Service {
+public class LocationService extends NotiService {
 
     private String TAG = LocationService.class.getSimpleName();
 
@@ -42,12 +44,17 @@ public class LocationService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        super.onStartCommand(intent, flags, startId);
+
+        applyNotiKeepMech(); //开启利用notification提高进程优先级的机制
+
         startLocation();
         return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
+        unApplyNotiKeepMech();
 
         stopLocation();
         super.onDestroy();
@@ -59,7 +66,7 @@ public class LocationService extends Service {
     void startLocation() {
         stopLocation();
 
-        if(null == mLocationClient){
+        if (null == mLocationClient) {
             mLocationClient = new AMapLocationClient(this.getApplicationContext());
         }
 
@@ -78,8 +85,8 @@ public class LocationService extends Service {
     /**
      * 停止定位
      */
-    void stopLocation(){
-        if(null != mLocationClient){
+    void stopLocation() {
+        if (null != mLocationClient) {
             mLocationClient.stopLocation();
         }
     }
@@ -87,18 +94,30 @@ public class LocationService extends Service {
     AMapLocationListener locationListener = new AMapLocationListener() {
         @Override
         public void onLocationChanged(AMapLocation aMapLocation) {
-            locationCount ++;
+
+            //首先进入息屏处理的逻辑
+            if (aMapLocation.getErrorCode() == AMapLocation.LOCATION_SUCCESS) {
+                LocationStatusManager.getInstance().onLocationSuccess(PowerManagerUtil.getInstance().isScreenOn(getApplicationContext()));
+            } else if (LocationStatusManager.getInstance().isFailOnScreenOff(getApplicationContext(), aMapLocation.getErrorCode(), PowerManagerUtil.getInstance().isScreenOn(getApplicationContext()))) {
+                PowerManagerUtil.getInstance().wakeUpScreen(getApplicationContext());
+            }
+
+            //发送结果的通知
+            sendLocationBroadcast(aMapLocation);
+        }
+
+        private void sendLocationBroadcast(AMapLocation aMapLocation) {
+            //记录信息并发送广播
+            locationCount++;
             long callBackTime = System.currentTimeMillis();
             StringBuffer sb = new StringBuffer();
-            sb.append("定位完成 第" + locationCount +  "次\n");
+            sb.append("定位完成 第" + locationCount + "次\n");
             sb.append("回调时间: " + Utils.formatUTC(callBackTime, null) + "\n");
-            if(null == aMapLocation){
+            if (null == aMapLocation) {
                 sb.append("定位失败：location is null!!!!!!!");
             } else {
                 sb.append(Utils.getLocationStr(aMapLocation));
             }
-
-            Log.e(TAG, sb.toString());
 
             Intent mIntent = new Intent(MainActivity.RECEIVER_ACTION);
             mIntent.putExtra("result", sb.toString());
@@ -106,6 +125,7 @@ public class LocationService extends Service {
             //发送广播
             sendBroadcast(mIntent);
         }
+
     };
 
 }
