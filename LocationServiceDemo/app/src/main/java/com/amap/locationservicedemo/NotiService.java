@@ -1,68 +1,103 @@
 package com.amap.locationservicedemo;
 
 import android.app.Service;
-import android.content.Intent;
-import android.app.Notification;
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.os.Binder;
 import android.os.IBinder;
+import android.os.RemoteException;
 import android.support.annotation.Nullable;
 
 /**
  * Created by liangchao_suxun on 17/1/16.
- * 提供了2种提高进程优先级的机制，建议第1种
- * 1. 利用双service进行notification绑定，进而将Service的OOM_ADJ提高到1
- * 2. 关闭屏幕时启动一个Activity来提高优先级
+ * 利用双service进行notification绑定，进而将Service的OOM_ADJ提高到1
+ * 同时利用LocationHelperService充当守护进程，在NotiService被关闭后，重启他。（如果LocationHelperService被停止，NotiService不负责唤醒)
  */
+
 
 public class NotiService extends Service {
 
-    /**
+    /**i
      * startForeground的 noti_id
      */
     private static int NOTI_ID = 123321;
 
+    private Utils.CloseServiceReceiver mCloseReceiver;
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        mCloseReceiver = new Utils.CloseServiceReceiver(this);
+        registerReceiver(mCloseReceiver, Utils.getCloseServiceFilter());
         return START_STICKY;
     }
 
+
+    @Override
+    public void onDestroy() {
+        if (mCloseReceiver != null) {
+            unregisterReceiver(mCloseReceiver);
+            mCloseReceiver = null;
+        }
+
+        super.onDestroy();
+    }
+
+
+    private final String mHelperServiceName = "com.amap.locationservicedemo.LocationHelperService";
     /**
      * 触发利用notification增加进程优先级
      */
-    public void applyNotiKeepMech(){
-        startForeground(NOTI_ID, buildNotification(getBaseContext()));
-        startService(new Intent(this, NotiInnerService.class));
+    protected void applyNotiKeepMech() {
+        startForeground(NOTI_ID, Utils.buildNotification(getBaseContext()));
+        startBindHelperService();
     }
 
-    public void unApplyNotiKeepMech(){
+    public void unApplyNotiKeepMech() {
         stopForeground(true);
     }
 
+    public Binder mBinder;
+
+    public class LocationServiceBinder extends ILocationServiceAIDL.Stub{
+        public void onFinishBind(){
+        }
+    }
+
+    private ILocationHelperServiceAIDL mHelperAIDL;
+    private void startBindHelperService() {
+        connection = new ServiceConnection() {
+            @Override
+            public void onServiceDisconnected(ComponentName name) {
+                //doing nothing
+            }
+
+            @Override
+            public void onServiceConnected(ComponentName name, IBinder service) {
+                ILocationHelperServiceAIDL l = ILocationHelperServiceAIDL.Stub.asInterface(service);
+                mHelperAIDL = l;
+                try {
+                    l.onFinishBind(NOTI_ID);
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+        Intent intent = new Intent();
+        intent.setAction(mHelperServiceName);
+        bindService(Utils.getExplicitIntent(getApplicationContext(), intent), connection, Service.BIND_AUTO_CREATE);
+    }
+
+    private ServiceConnection connection;
+
+    @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        return null;
-    }
-
-    public static class NotiInnerService extends Service {
-        @Override
-        public void onCreate() {
-            super.onCreate();
-            startForeground(NOTI_ID, buildNotification(getBaseContext()));
-            stopForeground(true);
-            stopSelf();
+        if (mBinder == null) {
+            mBinder = new LocationServiceBinder();
         }
-
-        @Nullable
-        @Override
-        public IBinder onBind(Intent intent) {
-            return null;
-        }
+        return mBinder;
     }
 
-
-    private static Notification buildNotification(Context context) {
-        Notification.Builder builder = new Notification.Builder(context);
-        builder.setContentText("service");
-        return builder.getNotification();
-    }
 }

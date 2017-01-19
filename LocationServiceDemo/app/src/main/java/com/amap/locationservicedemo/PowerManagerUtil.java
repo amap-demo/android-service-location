@@ -27,9 +27,9 @@ public class PowerManagerUtil {
     private long mLastWakupTime = System.currentTimeMillis();
 
     /**
-     * 最小的唤醒时间间隔，防止频繁唤醒。默认为15秒钟
+     * 最小的唤醒时间间隔，防止频繁唤醒。默认5分钟
      */
-    private long mMinWakupInterval = 15 * 1000;
+    private long mMinWakupInterval = 5 * 60 * 1000;
 
     /**
      * 内部线程工厂

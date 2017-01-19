@@ -1,12 +1,8 @@
 package com.amap.locationservicedemo;
 
 import android.content.Context;
-import android.content.BroadcastReceiver;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.content.Context;
 
 /**
  * Created by liangchao_suxun on 17/1/16.
@@ -24,13 +20,36 @@ public class NetUtil {
     }
 
     /**
-     * 设备是否可以访问网络
-     *
+     * 是否手机信号可连接
+     * @param context
      * @return
      */
-    public boolean isNetAvaliable(Context context) {
-        boolean hasWifoCon = false;
+    public boolean isMobileAva(Context context) {
+
         boolean hasMobileCon = false;
+
+        ConnectivityManager cm = (ConnectivityManager) context.getSystemService(context.CONNECTIVITY_SERVICE);
+        NetworkInfo[] netInfos = cm.getAllNetworkInfo();
+        for (NetworkInfo net : netInfos) {
+
+            String type = net.getTypeName();
+            if (type.equalsIgnoreCase("MOBILE")) {
+                if (net.isConnected()) {
+                    hasMobileCon = true;
+                }
+            }
+        }
+        return hasMobileCon;
+    }
+
+
+    /**
+     * 是否wifi可连接
+     * @param context
+     * @return
+     */
+    public boolean isWifiCon(Context context) {
+        boolean hasWifoCon = false;
 
         ConnectivityManager cm = (ConnectivityManager) context.getSystemService(context.CONNECTIVITY_SERVICE);
         NetworkInfo[] netInfos = cm.getAllNetworkInfo();
@@ -43,13 +62,8 @@ public class NetUtil {
                 }
             }
 
-            if (type.equalsIgnoreCase("MOBILE")) {
-                if (net.isConnected()) {
-                    hasMobileCon = true;
-                }
-            }
         }
+        return hasWifoCon;
 
-        return hasWifoCon || hasMobileCon;
     }
 }

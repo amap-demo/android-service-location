@@ -48,12 +48,12 @@
         <!-- 设置key -->
         <meta-data
             android:name="com.amap.api.v2.apikey"
-            android:value="您的key" />
+            android:value="a1f5886b7153004c5c99559f5261676f" />
         <!-- 定位需要的服务 -->
-        <service android:name="com.amap.api.location.APSService" >
-        </service>
+        <service android:name="com.amap.api.location.APSService"></service>
 
-        <activity android:name=".MainActivity"
+        <activity
+            android:name=".MainActivity"
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -62,8 +62,20 @@
             </intent-filter>
         </activity>
 
-        <service android:name=".LocationService"/>
-        <service android:name=".NotiService$NotiInnerService" />
+        <service
+            android:name=".LocationService"
+            android:process=":remote1">
+            <intent-filter>
+                <action android:name="com.amap.locationservicedemo.LocationService"></action>
+            </intent-filter>
+        </service>
+        <service
+            android:name=".LocationHelperService"
+            android:process=":remote2">
+            <intent-filter>
+                <action android:name="com.amap.locationservicedemo.LocationHelperService"></action>
+            </intent-filter>
+        </service>
 
     </application>
 

@@ -1,8 +1,7 @@
 package com.amap.locationservicedemo;
 
 import android.content.Intent;
-import android.os.IBinder;
-import android.support.annotation.Nullable;
+import android.util.Log;
 
 import com.amap.api.location.AMapLocation;
 import com.amap.api.location.AMapLocationClient;
@@ -29,34 +28,43 @@ import com.amap.api.location.AMapLocationListener;
  */
 public class LocationService extends NotiService {
 
-    private String TAG = LocationService.class.getSimpleName();
-
     private AMapLocationClient mLocationClient;
     private AMapLocationClientOption mLocationOption;
 
     private int locationCount;
 
-    @Nullable
-    @Override
-    public IBinder onBind(Intent intent) {
-        return null;
-    }
+    /**
+     * 处理息屏关掉wifi的delegate类
+     */
+    private IWifiAutoCloseDelegate mWifiAutoCloseDelegate = new WifiAutoCloseDelegate();
+
+    /**
+     * 记录是否需要对息屏关掉wifi的情况进行处理
+     */
+    private boolean mIsWifiCloseable = false;
+
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         super.onStartCommand(intent, flags, startId);
-
         applyNotiKeepMech(); //开启利用notification提高进程优先级的机制
 
+        if (mWifiAutoCloseDelegate.isUseful(getApplicationContext())) {
+            mIsWifiCloseable = true;
+            mWifiAutoCloseDelegate.initOnServiceStarted(getApplicationContext());
+        }
+
         startLocation();
+
         return START_STICKY;
     }
+
 
     @Override
     public void onDestroy() {
         unApplyNotiKeepMech();
-
         stopLocation();
+
         super.onDestroy();
     }
 
@@ -73,6 +81,7 @@ public class LocationService extends NotiService {
         mLocationOption = new AMapLocationClientOption();
         // 使用连续
         mLocationOption.setOnceLocation(false);
+        mLocationOption.setLocationCacheEnable(false);
         // 每10秒定位一次
         mLocationOption.setInterval(10 * 1000);
         // 地址信息
@@ -94,16 +103,19 @@ public class LocationService extends NotiService {
     AMapLocationListener locationListener = new AMapLocationListener() {
         @Override
         public void onLocationChanged(AMapLocation aMapLocation) {
-
-            //首先进入息屏处理的逻辑
-            if (aMapLocation.getErrorCode() == AMapLocation.LOCATION_SUCCESS) {
-                LocationStatusManager.getInstance().onLocationSuccess(PowerManagerUtil.getInstance().isScreenOn(getApplicationContext()));
-            } else if (LocationStatusManager.getInstance().isFailOnScreenOff(getApplicationContext(), aMapLocation.getErrorCode(), PowerManagerUtil.getInstance().isScreenOn(getApplicationContext()))) {
-                PowerManagerUtil.getInstance().wakeUpScreen(getApplicationContext());
-            }
-
             //发送结果的通知
             sendLocationBroadcast(aMapLocation);
+
+            if (!mIsWifiCloseable) {
+                return;
+            }
+
+            if (aMapLocation.getErrorCode() == AMapLocation.LOCATION_SUCCESS) {
+                mWifiAutoCloseDelegate.onLocateSuccess(getApplicationContext(), PowerManagerUtil.getInstance().isScreenOn(getApplicationContext()), NetUtil.getInstance().isMobileAva(getApplicationContext()));
+            } else {
+                mWifiAutoCloseDelegate.onLocateFail(getApplicationContext() , aMapLocation.getErrorCode() , PowerManagerUtil.getInstance().isScreenOn(getApplicationContext()), NetUtil.getInstance().isWifiCon(getApplicationContext()));
+            }
+
         }
 
         private void sendLocationBroadcast(AMapLocation aMapLocation) {
